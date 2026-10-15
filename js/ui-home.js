@@ -51,6 +51,7 @@
         '</div>' +
         '<div class="home-links">' +
           '<button class="btn btn-ghost btn-sm" data-action="how">📖 玩法說明</button>' +
+          (TII.voice.supported ? '<button class="btn btn-ghost btn-sm" data-action="voice-settings">🔊 語音設定</button>' : '') +
           '<button class="btn btn-ghost btn-sm" data-action="reset">↺ 重置進度</button>' +
         '</div>' +
         '<div class="feature-row">' + features.map(function (f) {

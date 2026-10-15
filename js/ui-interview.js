@@ -24,7 +24,8 @@
     TII.app.session = TII.createSession(c.level.id, c.cand.id);
     TII.app.ratings = {};
     TII.app.decision = null;
-    st = { tab: 'open', side: 'resume', probeSeen: null, replyOrder: null, typing: null, after: [], alertTimer: null, moodTimer: null };
+    st = { tab: 'open', side: 'resume', probeSeen: null, replyOrder: null, typing: null, after: [], alertTimer: null, moodTimer: null,
+      sheet: false, male: /^m_/.test(c.cand.sprite) };
 
     var ind = c.industry;
     var real = TII.app.realMode;
@@ -36,19 +37,25 @@
     scr.innerHTML =
       '<div class="panel iv-top">' +
         '<button class="btn btn-sm" data-action="iv-quit" title="離開面試">🏠</button>' +
-        '<div class="iv-title">' + e(c.level.position) + '<small>候選人 ' + e(c.cand.name) + (real ? '・實戰模式' : '') + '</small></div>' +
-        meter('m-time', 'time', '⏱ 時間') + meter('m-comfort', 'comfort', '😌 放鬆度') + meter('m-interest', 'interest', '💗 意願度') +
-        (real ? '' : '<span class="risk" id="iv-risk" title="可能違法或涉及隱私的提問次數">⚖️ 風險 0</span>') +
-        '<div class="drawer-btns"><button class="btn btn-sm" data-action="drawer" data-which="log">📝 紀錄</button>' +
-          '<button class="btn btn-sm" data-action="drawer" data-which="side">📄 資料</button></div>' +
-        '<button class="btn btn-sm btn-danger" data-action="iv-end">結束面試</button>' +
+        '<div class="iv-title"><span>' + e(c.level.position) + '</span><small>候選人 ' + e(c.cand.name) + (real ? '・實戰模式' : '') + '</small></div>' +
+        '<div class="iv-meters">' +
+          meter('m-time', 'time', '⏱ 時間') + meter('m-comfort', 'comfort', '😌 放鬆度') + meter('m-interest', 'interest', '💗 意願度') +
+          (real ? '' : '<span class="risk" id="iv-risk" title="可能違法或涉及隱私的提問次數">⚖️ 風險 0</span>') +
+        '</div>' +
+        '<div class="drawer-btns"><button class="btn btn-sm" data-action="drawer" data-which="log" title="面試紀錄">📝<span class="lbl"> 紀錄</span></button>' +
+          '<button class="btn btn-sm" data-action="drawer" data-which="side" title="履歷與職缺">📄<span class="lbl"> 資料</span></button></div>' +
+        (TII.voice.supported
+          ? '<button class="btn btn-sm" id="iv-voice" data-action="voice-settings" title="語音設定">' + (TII.voice.enabled() ? '🔊' : '🔇') + '</button>'
+          : '') +
+        '<button class="btn btn-sm btn-danger" data-action="iv-end">結束<span class="lbl">面試</span></button>' +
       '</div>' +
       '<div class="iv-main">' +
         '<div class="panel iv-side iv-left"><h3 class="panel-title">📝 面試紀錄<button class="btn btn-sm drawer-close" data-action="drawer-close">✕</button></h3>' +
           '<div class="log" id="iv-log"></div></div>' +
         '<div class="iv-center">' +
           '<div class="panel speech" id="iv-speech" data-action="skip-type"><span class="tag" id="sp-tag"></span>' +
-            '<div class="q-echo" id="sp-q"></div><div class="text" id="sp-text"></div><span class="more hidden" id="sp-more">點一下顯示全文 ▼</span></div>' +
+            '<div class="sp-scroll" id="sp-scroll"><div class="q-echo" id="sp-q"></div><div class="text" id="sp-text"></div></div>' +
+            '<span class="more hidden" id="sp-more">點一下顯示全文 ▼</span></div>' +
           '<div class="stage" style="background-image:url(' + e(ind.bg) + ')">' +
             '<div class="interviewer-mini">' + ui.img(TII.spritePath(ind.interviewer.sprite), '', ind.interviewer.name) +
               '<span>' + e(ind.interviewer.name) + e(ind.interviewer.title) + '<br>旁聽中</span></div>' +
@@ -117,10 +124,14 @@
     $('sp-q').classList.toggle('hidden', !question);
     $('sp-text').textContent = '';
     $('sp-more').classList.remove('hidden');
+    var box = $('sp-scroll');
+    box.scrollTop = 0;
+    TII.voice.speak(text, { male: st.male });
     st.typing = { full: text, i: 0, onDone: onDone };
     st.typing.timer = setInterval(function () {
       st.typing.i += 1;
       $('sp-text').textContent = st.typing.full.slice(0, st.typing.i);
+      box.scrollTop = box.scrollHeight; // phones cap the box height, so keep the newest typed line in view
       if (st.typing.i >= st.typing.full.length) finishTyping();
     }, TYPE_MS);
   }
@@ -158,6 +169,7 @@
   }
 
   function stopTimers() {
+    TII.voice.stop();
     if (!st) return;
     if (st.typing) clearInterval(st.typing.timer);
     st.typing = null;
@@ -304,15 +316,19 @@
     var s = TII.app.session;
     var deck = $('iv-deck');
     if (s.ended) {
+      st.sheet = false;
+      deck.classList.remove('sheet-open');
       deck.innerHTML = '<div class="deck-empty">面試已結束。<button class="btn btn-primary btn-sm" data-action="go-rating">進入評分 ▶</button></div>';
       return;
     }
+    deck.classList.toggle('sheet-open', st.sheet);
     if (s.pendingAsks.length) {
       var ask = TII.candidateAsks[s.pendingAsks[0]];
       deck.innerHTML = '<div class="deck-note">🙋 候選人提問：「' + e(ask.text) + '」請選擇你的回覆</div>' +
-        '<div class="reply-row">' + st.replyOrder.map(function (i) {
+        '<button class="btn btn-primary reply-open" data-action="sheet-open">選擇你的回覆 ▲</button>' +
+        sheet('🙋 選擇你的回覆', '<div class="reply-row">' + st.replyOrder.map(function (i) {
           return '<button class="qcard" data-action="reply" data-index="' + i + '">' + e(ask.options[i].text) + '</button>';
-        }).join('') + '</div>';
+        }).join('') + '</div>');
       return;
     }
 
@@ -323,8 +339,10 @@
       var n = all.filter(function (q) { return q.cat === cat.key && !q.disabled; }).length;
       var pulse = cat.key === 'probe' && probeTopic && st.tab !== 'probe' && st.probeSeen !== s.lastTopic;
       return '<button class="cat-tab' + (st.tab === cat.key ? ' active' : '') + (pulse ? ' pulse' : '') +
-        '" data-action="deck-tab" data-tab="' + cat.key + '">' + cat.icon + ' ' + e(cat.name) + '<span class="n">' + n + '</span></button>';
+        '" data-action="deck-tab" data-tab="' + cat.key + '"><span class="ic">' + cat.icon + '</span> <span class="nm">' + e(cat.name) +
+        '<span class="n">' + n + '</span></span></button>';
     }).join('');
+    var cur = TII.categories.filter(function (cat) { return cat.key === st.tab; })[0];
 
     var body;
     var list = all.filter(function (q) { return q.cat === st.tab; });
@@ -344,7 +362,14 @@
           e(q.text) + '</button>';
       }).join('') + '</div>';
     }
-    deck.innerHTML = '<div class="deck-head">' + tabs + '</div>' + body;
+    deck.innerHTML = '<div class="deck-head">' + tabs + '</div>' + sheet(cur.icon + ' ' + e(cur.name), body);
+  }
+
+  // Phones show only the category buttons; the cards slide up in a bottom sheet (css/interview.css)
+  function sheet(title, body) {
+    return '<div class="deck-body"><div class="sheet-head"><b>' + title + '</b>' +
+      '<button class="btn btn-sm" data-action="sheet-close" title="收起">✕</button></div>' + body + '</div>' +
+      '<div class="sheet-backdrop" data-action="sheet-close"></div>';
   }
 
   function lastAnswer(s) {
@@ -359,16 +384,20 @@
     var s = TII.app.session;
     if (!s || s.ended) return;
     finishTyping();
+    st.sheet = false;
     play(TII.ask(s, d.id), s);
   });
 
   ui.on('reply', function (d) {
     var s = TII.app.session;
     finishTyping();
+    st.sheet = false;
     play(TII.respondToAsk(s, Number(d.index)), s);
   });
 
-  ui.on('deck-tab', function (d) { st.tab = d.tab; renderDeck(); });
+  ui.on('deck-tab', function (d) { st.tab = d.tab; st.sheet = true; renderDeck(); });
+  ui.on('sheet-open', function () { st.sheet = true; renderDeck(); });
+  ui.on('sheet-close', function () { st.sheet = false; renderDeck(); });
   ui.on('side-tab', function (d) { st.side = d.tab; renderSide(); });
   ui.on('skip-type', function () { finishTyping(); });
   ui.on('dismiss-alert', function () { $('iv-alert').classList.add('hidden'); });

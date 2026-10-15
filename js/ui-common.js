@@ -40,11 +40,11 @@
     overlayQueue.push({ html: html, onClose: onClose, onShow: onShow });
     if (!overlayOpen) nextOverlay();
   };
-  ui.modal = function (title, bodyHtml, buttonsHtml, onClose) {
+  ui.modal = function (title, bodyHtml, buttonsHtml, onClose, onShow) {
     ui.overlay(
       '<div class="panel modal" role="dialog" aria-modal="true"><h2>' + ui.esc(title) + '</h2>' + bodyHtml +
       '<div class="modal-actions">' + (buttonsHtml || '<button class="btn btn-primary" data-action="overlay-close">知道了</button>') + '</div></div>',
-      onClose
+      onClose, onShow
     );
   };
   function nextOverlay() {
