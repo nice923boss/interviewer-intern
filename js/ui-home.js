@@ -40,7 +40,7 @@
           '<div class="hero-text"><span class="hero-badge">💼 面試官對練</span>' +
           '<h1>面試官<em>實習生</em></h1><div class="en">THE INTERVIEWER INTERN</div></div>' +
         '</div>' +
-        '<p class="tagline">' + TII.industries.length + ' 大產業、' + count.levels + ' 個職缺、' + count.cands + ' 位候選人，每次坐在你對面的人都不一樣。<br>問對問題、追到細節、看穿包裝，結束後取得評分與教練建議。</p>' +
+        '<p class="tagline">' + TII.industries.length + ' 大產業、' + count.levels + ' 個職缺、' + count.cands + ' 位候選人，<br class="br-mobile">每次坐在你對面的人都不一樣。<br>問對問題、追到細節、看穿包裝，<br class="br-mobile">結束後取得評分與教練建議。</p>' +
         '<div class="mode-row">' +
           '<button class="mode-card" data-action="go-levels"><span class="icon">🎯</span><h2>實習關卡</h2>' +
             '<p>依產業逐關挑戰，從新人職缺一路到主管職。拿到星星就能解鎖下一關。</p>' +
